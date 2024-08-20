@@ -5,11 +5,13 @@ import { AptosWalletAdapterProvider } from "@aptos-labs/wallet-adapter-react";
 import React from "react";
 import { PropsWithChildren } from "react";
 import { Network } from "@aptos-labs/ts-sdk";
+import { MartianWallet } from "@martianwallet/aptos-wallet-adapter";
 
 const WalletProvider = ({ children }: PropsWithChildren) => {
     const wallets = [
         new PetraWallet(),
         new PontemWallet(),
+        new MartianWallet(),
     ];
 
     return (

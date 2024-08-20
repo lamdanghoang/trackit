@@ -6,6 +6,8 @@
   --foreground-rgb: 0, 0, 0;
   --background-start-rgb: 214, 219, 220;
   --background-end-rgb: 255, 255, 255;
+  --button-color: #00a3ff;
+  --body-background-color: #fff9f9;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -17,10 +19,7 @@
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))) rgb(var(--background-start-rgb));
+  background-color: var(--body-background-color);
 }
 
 @layer utilities {
@@ -29,11 +28,20 @@ body {
   }
 }
 
+.wallet-button,
+.wallet-connect-button {
+  background-color: var(--button-color);
+}
+
 /* .aptos-connect-button,
 .ant-modal-header,
 .about-aptos-connect-trigger-wrapper,
 .aptos-connect-privacy-policy-wrapper,
 .ant-divider-with-text {
+  display: none;
+} */
+
+/* .ant-modal-body>div>div.wallet-menu-wrapper:first-of-type {
   display: none;
 } */
 
