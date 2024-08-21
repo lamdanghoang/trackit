@@ -1,9 +1,37 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { WalletName, useWallet } from '@aptos-labs/wallet-adapter-react';
-import { getTokenByAccount } from "@/utils/getData";
+import { fetchAssetBalance } from "@/utils/getData";
 import { Pagination } from "antd";
 import type { PaginationProps } from 'antd';
+
+interface BalanceDataType {
+  owner_address: string;
+  amount: number;
+  is_frozen: boolean;
+  storage_id: string;
+  metadata: {
+    asset_type: string;
+    creator_address: string;
+    decimals: number;
+    icon_uri: string | null;
+    name: string;
+    project_uri: string | null;
+    symbol: string;
+    token_standard: string;
+    maximum_v2: string | null;
+    supply_v2: string | null;
+  };
+}
+
+interface TableDataType {
+  name: string;
+  symbol: string;
+  amount: number;
+  price: string;
+  percentChangeFor24h: string;
+  value: string;
+}
 
 const table_head = [
   'Asset',
@@ -14,20 +42,59 @@ const table_head = [
   'Value'
 ]
 
+const getTableData = (data: BalanceDataType[]) => {
+  // This function will transform the balance data and potentially fetch additional info
+  return data.map((item) => {
+    // Extract relevant information from each balance item
+    const name = item.metadata.name;
+    const symbol = item.metadata.symbol;
+    const amount = item.amount;
+    const price = '';
+    const percentChangeFor24h = '';
+    const value = '';
+
+    // Fetch price and change data from an external API (replace with your logic)
+    // const priceResponse = await fetch(`https://your-api.com/price/${symbol}`);
+    // const priceData = await priceResponse.json();
+    // const price = priceData.currentPrice;
+    // const percentChangeFor24h = priceData.change24h;
+
+    // Calculate the value based on balance and price
+    // const value = (Number(balance) * Number(price)).toFixed(2);
+
+    return {
+      name,
+      symbol,
+      amount,
+      price,
+      percentChangeFor24h,
+      value,
+    };
+  });
+};
+
 export default function Home() {
   const { connect, disconnect, account, connected } = useWallet();
-  const address = account?.address;
+  const [balanceData, setBalanceData] = useState<BalanceDataType[] | []>();
+  const [tableData, setTableData] = useState<TableDataType[] | []>();
   const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (account?.address) {
+        const data = await fetchAssetBalance(account?.address);
+        const processedData = getTableData(data);
+        setTableData(processedData);
+      }
+    };
+
+    fetchData();
+  }, [account?.address]);
 
   const onChange: PaginationProps['onChange'] = (page) => {
     console.log(page);
     setCurrentPage(page);
   };
-
-  if (address) {
-    // const data = getTokenByAccount("0xA7CdED275218A6D0E0b36391ddEb7986D2aea755", 1);
-    // console.log('Data: ', data);
-  }
 
   return (
     <main className="flex-grow p-10">
@@ -50,9 +117,9 @@ export default function Home() {
             <table className="w-full text-left table-auto min-w-max">
               <thead>
                 <tr>
-                  {table_head.map(head => (
+                  {table_head.map((head, index) => (
 
-                    <th className="p-4 border-b border-slate-300 bg-slate-50">
+                    <th key={index} className="p-4 border-b border-slate-300 bg-slate-50">
                       <p className="block text-sm font-normal leading-none text-slate-500">
                         {head}
                       </p>
@@ -62,25 +129,29 @@ export default function Home() {
                 </tr>
               </thead>
               <tbody>
-                <tr className="">
-                  <td className="p-4 border-b border-slate-200">
-                    <p className="block text-sm text-slate-800">
-                      John Michael
-                    </p>
-                  </td>
-                  <td className="p-4 border-b border-slate-200">
-                    <p className="block text-sm text-slate-800">
-                      Manager
-                    </p>
-                  </td>
-                  <td className="p-4 border-b border-slate-200">
-                    <p className="block text-sm text-slate-800">
-                      23/04/18
-                    </p>
-                  </td>
-                  <td className="p-4 border-b border-slate-200">
-                  </td>
-                </tr>
+                {tableData?.map((token, index) => {
+                  return (
+                    <tr key={index} className="">
+                      <td className="p-4 border-b border-slate-200">
+                        <p className="block text-sm text-slate-800">
+                          {token.name}
+                        </p>
+                      </td>
+                      <td className="p-4 border-b border-slate-200">
+                        <p className="block text-sm text-slate-800">
+                          {token.symbol}
+                        </p>
+                      </td>
+                      <td className="p-4 border-b border-slate-200">
+                        <p className="block text-sm text-slate-800">
+                          {token.amount}
+                        </p>
+                      </td>
+                      <td className="p-4 border-b border-slate-200">
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
             <Pagination align="center" current={currentPage} onChange={onChange} total={50} />;
