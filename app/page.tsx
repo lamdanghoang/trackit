@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { WalletName, useWallet } from '@aptos-labs/wallet-adapter-react';
-import { fetchAssetBalance } from "@/utils/getData";
+import { fetchAssetBalance, fetchTopHolder } from "@/utils/getData";
 import { Pagination } from "antd";
 import type { PaginationProps } from 'antd';
 
@@ -24,6 +24,34 @@ interface BalanceDataType {
   };
 }
 
+interface HolderDataType {
+  amount: number;
+  owner_address: string;
+  asset_type: string;
+  is_frozen: boolean;
+  is_primary: boolean;
+  last_transaction_timestamp: string;
+  last_transaction_version: number;
+  storage_id: string;
+  token_standard: string;
+  metadata: {
+    icon_uri: string | null;
+    maximum_v2: string | null;
+    project_uri: string | null;
+    supply_aggregator_table_handle_v1: string | null;
+    supply_aggregator_table_key_v1: string | null;
+    supply_v2: string | null;
+    name: string | null;
+    symbol: string | null;
+    token_standard: string | null;
+    last_transaction_version: number
+    last_transaction_timestamp: string | null;
+    decimals: number;
+    creator_address: string | null;
+    asset_type: string | null;
+  }
+}
+
 interface TableDataType {
   name: string;
   symbol: string;
@@ -40,6 +68,13 @@ const table_head = [
   'Price',
   'Change (24h)',
   'Value'
+]
+
+const topHolderTableHead = [
+  'Rank',
+  'Address',
+  'Aptos Balance',
+  'Percentage',
 ]
 
 const getTableData = (data: BalanceDataType[]) => {
@@ -77,6 +112,7 @@ export default function Home() {
   const { connect, disconnect, account, connected } = useWallet();
   const [balanceData, setBalanceData] = useState<BalanceDataType[] | []>();
   const [tableData, setTableData] = useState<TableDataType[] | []>();
+  const [topHolderData, setTopHolderData] = useState<HolderDataType[] | []>();
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
@@ -85,6 +121,9 @@ export default function Home() {
         const data = await fetchAssetBalance(account?.address);
         const processedData = getTableData(data);
         setTableData(processedData);
+
+        const holderData = await fetchTopHolder(6000000);
+        setTopHolderData(holderData);
       }
     };
 
@@ -113,7 +152,13 @@ export default function Home() {
         <div>
           <div className="relative flex flex-col w-full h-full text-gray-700 bg-white shadow-md rounded-lg bg-clip-border">
             <h2 className="text-sm">ASSETS HOLDING</h2>
-            <p className="text-sm	text-[#aeb4bc]">A Total of 20 tokens</p>
+            <div className="flex justify-between items-center">
+              <p className="text-sm	text-[#aeb4bc]">A Total of 20 tokens</p>
+              <div className="w-1/4">
+                <input type="text" id="password" className="w-full pl-3 pr-10 py-2 border-2 border-gray-200 rounded-xl hover:border-gray-300 focus:outline-none focus:border-blue-500 transition-colors" placeholder="Search..." />
+                <button className="block w-7 h-7 text-center text-xl leading-0 absolute top-2 right-2 text-gray-400 focus:outline-none hover:text-gray-900 transition-colors"><i className="mdi mdi-magnify"></i></button>
+              </div>
+            </div>
             <table className="w-full text-left table-auto min-w-max">
               <thead>
                 <tr>
@@ -154,7 +199,55 @@ export default function Home() {
                 })}
               </tbody>
             </table>
-            <Pagination align="center" current={currentPage} onChange={onChange} total={50} />;
+            <Pagination align="center" current={currentPage} onChange={onChange} total={50} />
+          </div>
+        </div>
+
+        <div>
+          <div className="relative flex flex-col w-full h-full text-gray-700 bg-white shadow-md rounded-lg bg-clip-border">
+            <h2 className="text-sm">TOP HOLDERS</h2>
+            <p className="text-sm	text-[#aeb4bc]">A Total of 20 holders</p>
+            <table className="w-full text-left table-auto min-w-max">
+              <thead>
+                <tr>
+                  {topHolderTableHead.map((head, index) => (
+
+                    <th key={index} className="p-4 border-b border-slate-300 bg-slate-50">
+                      <p className="block text-sm font-normal leading-none text-slate-500">
+                        {head}
+                      </p>
+                    </th>
+
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {topHolderData?.map((token, index) => {
+                  return (
+                    <tr key={index} className="">
+                      <td className="p-4 border-b border-slate-200">
+                        <p className="block text-sm text-slate-800">
+                          {index + 1}
+                        </p>
+                      </td>
+                      <td className="p-4 border-b border-slate-200">
+                        <p className="block text-sm text-slate-800">
+                          {token.owner_address}
+                        </p>
+                      </td>
+                      <td className="p-4 border-b border-slate-200">
+                        <p className="block text-sm text-slate-800">
+                          {token.amount / 100000000} APT
+                        </p>
+                      </td>
+                      <td className="p-4 border-b border-slate-200">
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+            <Pagination align="center" current={currentPage} onChange={onChange} total={50} />
           </div>
         </div>
       </section>

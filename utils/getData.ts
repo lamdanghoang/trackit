@@ -56,6 +56,70 @@ query MyQuery {
     }
 }
 
+export const fetchTopHolder = async (numberAPT: number) => {
+    const operationsDoc = `
+query MyQuery {
+  current_fungible_asset_balances(
+    where: {metadata: {asset_type: {_eq: "0x1::aptos_coin::AptosCoin"}}, amount: {_gt: "600000000000000"}}
+    order_by: {amount: desc}
+  ) {
+    amount
+    owner_address
+    asset_type
+    is_frozen
+    is_primary
+    last_transaction_timestamp
+    last_transaction_version
+    storage_id
+    token_standard
+    metadata {
+      icon_uri
+      maximum_v2
+      project_uri
+      supply_aggregator_table_handle_v1
+      supply_aggregator_table_key_v1
+      supply_v2
+      name
+      symbol
+      token_standard
+      last_transaction_version
+      last_transaction_timestamp
+      decimals
+      creator_address
+      asset_type
+    }
+  }
+}
+`;
+
+    const options = {
+        method: 'POST',
+        headers: {
+            accept: 'application/json',
+            'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+            query: operationsDoc,
+            variables: {},
+            operationName: "MyQuery",
+        }),
+    };
+
+    try {
+        const response = await fetch(url, options);
+        console.log(response);
+        if (response.ok) {
+            const result = await response.json();
+            console.log(result);
+            return result.data.current_fungible_asset_balances;
+        } else {
+            return null;
+        }
+    } catch (error) {
+        throw new Error('Cannot fetch top holder data. Try again later.');
+    }
+}
+
 
 // With ERC20
 
