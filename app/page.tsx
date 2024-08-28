@@ -52,7 +52,7 @@ interface HolderDataType {
   }
 }
 
-interface TableDataType {
+interface TableAssetDataType {
   name: string;
   symbol: string;
   amount: number;
@@ -110,8 +110,9 @@ const getTableData = (data: BalanceDataType[]) => {
 
 export default function Home() {
   const { connect, disconnect, account, connected } = useWallet();
-  const [balanceData, setBalanceData] = useState<BalanceDataType[] | []>();
-  const [tableData, setTableData] = useState<TableDataType[] | []>();
+  const [aptBalance, setAptBalance] = useState<number>();
+  const [currentAddress, setCurrentAddress] = useState();
+  const [tableData, setTableData] = useState<TableAssetDataType[] | []>();
   const [topHolderData, setTopHolderData] = useState<HolderDataType[] | []>();
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -120,9 +121,11 @@ export default function Home() {
       if (account?.address) {
         const data = await fetchAssetBalance(account?.address);
         const processedData = getTableData(data);
+        const aptosBalance = processedData.filter(token => token.symbol === 'APT');
+        setAptBalance(aptosBalance[0].amount);
         setTableData(processedData);
 
-        const holderData = await fetchTopHolder(6000000);
+        const holderData = await fetchTopHolder(10);
         setTopHolderData(holderData);
       }
     };
@@ -136,36 +139,30 @@ export default function Home() {
   };
 
   return (
-    <main className="flex-grow p-10">
-      <section className="">
-        <div className="">
-          <div className="text-2xl leading-normal font-semibold">Account</div>
+    <main className="flex-grow px-20 py-8">
+      <section className="flex flex-col gap-6">
+        <div>
+          <div className="text-2xl leading-normal font-semibold">Your Account</div>
           <div>{account?.address}</div>
         </div>
-        <div className="bg-card p-4 rounded-lg">
-          <h2 className="text-xs leading-normal font-bold text-[#76808f]">Aptos Balance</h2>
-          <div className="flex justify-between">
-            <p className="text-xl font-semibold leading-6	">23835758.71509017 APT</p>
-            <p className="text-xs ">$ 140,630,976.41</p>
+        <div className="bg-white p-4 rounded-lg">
+          <h2 className="mb-1 text-xs leading-normal font-bold text-[#76808f]">Aptos Balance</h2>
+          <div className="flex justify-between items-end">
+            <p className="text-xl font-semibold leading-6	">{aptBalance ? aptBalance / 100000000 : '--'} APT</p>
+            <p className="text-xs ">5 $</p>
           </div>
         </div>
         <div>
-          <div className="relative flex flex-col w-full h-full text-gray-700 bg-white shadow-md rounded-lg bg-clip-border">
+          <div className="relative flex flex-col gap-4 px-6 py-4 w-full h-full text-gray-700 bg-white shadow-md rounded-lg bg-clip-border">
             <h2 className="text-sm">ASSETS HOLDING</h2>
-            <div className="flex justify-between items-center">
-              <p className="text-sm	text-[#aeb4bc]">A Total of 20 tokens</p>
-              <div className="w-1/4">
-                <input type="text" id="password" className="w-full pl-3 pr-10 py-2 border-2 border-gray-200 rounded-xl hover:border-gray-300 focus:outline-none focus:border-blue-500 transition-colors" placeholder="Search..." />
-                <button className="block w-7 h-7 text-center text-xl leading-0 absolute top-2 right-2 text-gray-400 focus:outline-none hover:text-gray-900 transition-colors"><i className="mdi mdi-magnify"></i></button>
-              </div>
-            </div>
+            <p className="text-sm	text-[#aeb4bc]">A Total of {tableData?.length} tokens</p>
             <table className="w-full text-left table-auto min-w-max">
               <thead>
                 <tr>
                   {table_head.map((head, index) => (
 
-                    <th key={index} className="p-4 border-b border-slate-300 bg-slate-50">
-                      <p className="block text-sm font-normal leading-none text-slate-500">
+                    <th key={index} className="p-4 border-b border-slate-300 bg-customBlue">
+                      <p className="block text-sm font-normal leading-none text-white">
                         {head}
                       </p>
                     </th>
@@ -178,19 +175,23 @@ export default function Home() {
                   return (
                     <tr key={index} className="">
                       <td className="p-4 border-b border-slate-200">
-                        <p className="block text-sm text-slate-800">
+                        <p className="block text-sm">
                           {token.name}
                         </p>
                       </td>
                       <td className="p-4 border-b border-slate-200">
-                        <p className="block text-sm text-slate-800">
+                        <p className="block text-sm">
                           {token.symbol}
                         </p>
                       </td>
                       <td className="p-4 border-b border-slate-200">
-                        <p className="block text-sm text-slate-800">
-                          {token.amount}
+                        <p className="block text-sm">
+                          {Number(token.amount / 100000000).toFixed(3)}
                         </p>
+                      </td>
+                      <td className="p-4 border-b border-slate-200">
+                      </td>
+                      <td className="p-4 border-b border-slate-200">
                       </td>
                       <td className="p-4 border-b border-slate-200">
                       </td>
@@ -199,21 +200,20 @@ export default function Home() {
                 })}
               </tbody>
             </table>
-            <Pagination align="center" current={currentPage} onChange={onChange} total={50} />
+            {/* <Pagination align="center" current={currentPage} onChange={onChange} total={50} /> */}
           </div>
         </div>
 
         <div>
-          <div className="relative flex flex-col w-full h-full text-gray-700 bg-white shadow-md rounded-lg bg-clip-border">
+          <div className="relative flex flex-col gap-4 px-6 py-4 w-full h-full text-gray-700 bg-white shadow-md rounded-lg bg-clip-border">
             <h2 className="text-sm">TOP HOLDERS</h2>
-            <p className="text-sm	text-[#aeb4bc]">A Total of 20 holders</p>
+            <p className="text-sm	text-[#aeb4bc]">A Total of {topHolderData?.length} holders</p>
             <table className="w-full text-left table-auto min-w-max">
               <thead>
                 <tr>
                   {topHolderTableHead.map((head, index) => (
-
-                    <th key={index} className="p-4 border-b border-slate-300 bg-slate-50">
-                      <p className="block text-sm font-normal leading-none text-slate-500">
+                    <th key={index} className="p-4 border-b border-slate-300 bg-customBlue">
+                      <p className="block text-sm font-normal leading-none text-white">
                         {head}
                       </p>
                     </th>
@@ -226,18 +226,18 @@ export default function Home() {
                   return (
                     <tr key={index} className="">
                       <td className="p-4 border-b border-slate-200">
-                        <p className="block text-sm text-slate-800">
+                        <p className="block text-sm">
                           {index + 1}
                         </p>
                       </td>
                       <td className="p-4 border-b border-slate-200">
-                        <p className="block text-sm text-slate-800">
+                        <p className="block text-sm">
                           {token.owner_address}
                         </p>
                       </td>
                       <td className="p-4 border-b border-slate-200">
-                        <p className="block text-sm text-slate-800">
-                          {token.amount / 100000000} APT
+                        <p className="block text-sm">
+                          {Number(token.amount / 100000000).toFixed(2)} APT
                         </p>
                       </td>
                       <td className="p-4 border-b border-slate-200">
@@ -247,7 +247,7 @@ export default function Home() {
                 })}
               </tbody>
             </table>
-            <Pagination align="center" current={currentPage} onChange={onChange} total={50} />
+            {/* <Pagination align="center" current={currentPage} onChange={onChange} total={50} /> */}
           </div>
         </div>
       </section>

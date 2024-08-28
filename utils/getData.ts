@@ -1,5 +1,4 @@
-const apiKey: string = process.env.NEXT_PUBLIC_NODIT_API_KEY || '';
-const url = `https://aptos-mainnet.nodit.io/${apiKey}/v1/graphql`;
+const url: string = process.env.NEXT_PUBLIC_NODIT_INDEXER || '';
 
 // With Aptos
 export const fetchAssetBalance = async (address: string) => {
@@ -56,11 +55,12 @@ query MyQuery {
     }
 }
 
-export const fetchTopHolder = async (numberAPT: number) => {
+export const fetchTopHolder = async (numberAccount: number) => {
     const operationsDoc = `
 query MyQuery {
   current_fungible_asset_balances(
-    where: {metadata: {asset_type: {_eq: "0x1::aptos_coin::AptosCoin"}}, amount: {_gt: "600000000000000"}}
+    limit: ${numberAccount}
+    where: {metadata: {asset_type: {_eq: "0x1::aptos_coin::AptosCoin"}}}
     order_by: {amount: desc}
   ) {
     amount
