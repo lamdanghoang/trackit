@@ -9,7 +9,7 @@ const Header = () => {
             <div className="text-3xl font-bold"><Link href={"/"}>Trackit</Link></div>
             <nav className="flex gap-20">
                 <Link href={"/"}>My assets</Link>
-                <Link href={"top-holders"}>Top holders</Link>
+                <Link href={"/top-holders"}>Top holders</Link>
             </nav>
             <WalletSelector />
         </header>

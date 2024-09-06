@@ -1,29 +1,19 @@
 'use client'
 
-import { fetchTransactionByAccount } from '@/utils/getData';
+import { fetchTransactionByAccount, TableTransactionDataType, fetchAssetBalance, BalanceDataType } from '@/utils/getData';
 import { useParams } from 'next/navigation'
 import { useEffect, useState } from 'react';
-
-interface TableTransactionDataType {
-    version: string;
-    hash: string;
-    shortHash: string;
-    timestamp: string;
-    date: string;
-    sender: string;
-    shortSender: string;
-    amount: number;
-}
 
 const table_head = [
     'Version #',
     'Hash',
     'Age',
     'Sender',
+    'Amount',
 ];
 
 function timestampToString(timestamp: string) {
-    const date = new Date(+timestamp);
+    const date = new Date(+timestamp / 1000);
     const monthNames = [
         "Jan", "Feb", "Mar", "Apr", "May", "Jun",
         "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
@@ -32,7 +22,6 @@ function timestampToString(timestamp: string) {
         month = monthNames[date.getMonth()];
     const day = date.getDate();
     const year = date.getFullYear();
-    console.log(date, " ", month, " ", day, " ", year);
     return `${month} ${day}, ${year}`;
 }
 
@@ -62,17 +51,45 @@ const getTransactionTableData = (data: any[]) => {
     });
 };
 
+const getTableData = (data: BalanceDataType[]) => {
+    // This function will transform the balance data and potentially fetch additional info
+    return data.map((item) => {
+        // Extract relevant information from each balance item
+        const name = item.metadata.name;
+        const symbol = item.metadata.symbol;
+        const amount = item.amount;
+        const price = '';
+        const percentChangeFor24h = '';
+        const value = '';
+
+        return {
+            name,
+            symbol,
+            amount,
+            price,
+            percentChangeFor24h,
+            value,
+        };
+    });
+};
+
 export default function AccountPage() {
     const params = useParams<{ address: string }>();
+    const [aptBalance, setAptBalance] = useState<number>();
     const [transactionData, setTransactionData] = useState<TableTransactionDataType[] | []>();
 
     useEffect(() => {
         const fetchData = async () => {
             if (params.address) {
+                const assetData = await fetchAssetBalance(params.address);
+                const processedAssetData = getTableData(assetData);
+                const assetBalance = processedAssetData.filter(token => token.symbol === 'APT');
+
                 const transactionData = await fetchTransactionByAccount(params.address, 10);
                 const processedData = getTransactionTableData(transactionData);
 
                 setTransactionData(processedData);
+                setAptBalance(assetBalance[0].amount);
             }
         }
 
@@ -90,7 +107,7 @@ export default function AccountPage() {
                 <div className="bg-white p-4 rounded-lg">
                     <h2 className="mb-1 text-xs leading-normal font-bold text-[#76808f]">Aptos Balance</h2>
                     <div className="flex justify-between items-end">
-                        <p className="text-xl font-semibold leading-6">aptBalance APT</p>
+                        <p className="text-xl font-semibold leading-6">{aptBalance ? (aptBalance / 100000000) : '--'} APT</p>
                         <p className="text-xs ">5 $</p>
                     </div>
                 </div>
@@ -134,6 +151,11 @@ export default function AccountPage() {
                                             <td className="p-4 border-b border-slate-200">
                                                 <p className="block text-sm">
                                                     {item.shortSender}
+                                                </p>
+                                            </td>
+                                            <td className="p-4 border-b border-slate-200">
+                                                <p className="block text-sm">
+                                                    {item.amount} APT
                                                 </p>
                                             </td>
                                         </tr>

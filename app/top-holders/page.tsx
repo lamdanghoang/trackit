@@ -1,38 +1,10 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { WalletName, useWallet } from '@aptos-labs/wallet-adapter-react';
-import { fetchAssetBalance, fetchTopHolder } from "@/utils/getData";
+import { fetchAssetBalance, fetchTopHolder, HolderDataType } from "@/utils/getData";
 import { Pagination } from "antd";
 import type { PaginationProps } from 'antd';
 import Link from "next/link";
-
-interface HolderDataType {
-    amount: number;
-    owner_address: string;
-    asset_type: string;
-    is_frozen: boolean;
-    is_primary: boolean;
-    last_transaction_timestamp: string;
-    last_transaction_version: number;
-    storage_id: string;
-    token_standard: string;
-    metadata: {
-        icon_uri: string | null;
-        maximum_v2: string | null;
-        project_uri: string | null;
-        supply_aggregator_table_handle_v1: string | null;
-        supply_aggregator_table_key_v1: string | null;
-        supply_v2: string | null;
-        name: string | null;
-        symbol: string | null;
-        token_standard: string | null;
-        last_transaction_version: number
-        last_transaction_timestamp: string | null;
-        decimals: number;
-        creator_address: string | null;
-        asset_type: string | null;
-    }
-}
 
 const top_holder_table_head = [
     'Rank',

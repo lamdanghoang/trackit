@@ -1,52 +1,9 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { WalletName, useWallet } from '@aptos-labs/wallet-adapter-react';
-import { fetchAssetBalance, fetchNFTsBalance } from "@/utils/getData";
-import { Pagination } from "antd";
-import type { PaginationProps } from 'antd';
+import { fetchAssetBalance, fetchNFTsBalance, BalanceDataType, NftDataType } from "@/utils/getData";
+import { Tabs } from 'antd';
 import { it } from "node:test";
-
-interface BalanceDataType {
-  owner_address: string;
-  amount: number;
-  is_frozen: boolean;
-  storage_id: string;
-  metadata: {
-    asset_type: string;
-    creator_address: string;
-    decimals: number;
-    icon_uri: string | null;
-    name: string;
-    project_uri: string | null;
-    symbol: string;
-    token_standard: string;
-    maximum_v2: string | null;
-    supply_v2: string | null;
-  };
-}
-
-interface NftDataType {
-  owner_address: string;
-  amount: number;
-  is_fungible_v2: string | null;
-  is_soulbound_v2: string | null;
-  last_transaction_timestamp: string;
-  non_transferrable_by_owner: string | null;
-  last_transaction_version: number;
-  property_version_v1: number;
-  storage_id: string;
-  table_type_v1: string;
-  token_data_id: string;
-  token_properties_mutated_v1: {};
-  token_standard: string;
-  current_token_data: {
-    collection_id: string;
-    token_name: string;
-    current_collection: {
-      creator_address: string;
-    };
-  };
-}
 
 interface TableAssetDataType {
   name: string;
@@ -62,6 +19,11 @@ interface TableNftDataType {
   amount: number;
   creator: string;
 }
+
+const tabList = [
+  'Coins',
+  'NFT',
+]
 
 const asset_table_head = [
   'Asset',
@@ -131,7 +93,7 @@ export default function HomePage() {
   const [currentAddress, setCurrentAddress] = useState();
   const [assetData, setAssetData] = useState<TableAssetDataType[] | []>();
   const [nftData, setNftData] = useState<TableNftDataType[] | []>();
-
+  const [selectedTab, setSelectedTab] = useState<string>('0');
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
@@ -154,9 +116,13 @@ export default function HomePage() {
     fetchData();
   }, [account?.address]);
 
-  const onChange: PaginationProps['onChange'] = (page) => {
-    console.log(page);
-    setCurrentPage(page);
+  // const onChange: PaginationProps['onChange'] = (page) => {
+  //   console.log(page);
+  //   setCurrentPage(page);
+  // };
+
+  const tabChangeHandler = (key: string) => {
+    setSelectedTab(key);
   };
 
   return (
@@ -173,112 +139,125 @@ export default function HomePage() {
             <p className="text-xs ">5 $</p>
           </div>
         </div>
+        <Tabs
+          onChange={tabChangeHandler}
+          type="card"
+          items={tabList.map((val, i) => {
+            return {
+              label: `${val}`,
+              key: String(i),
+            };
+          })}
+        />
+        {selectedTab === '0' &&
+          <div className="relative flex flex-col gap-4 px-6 py-4 w-full h-full text-gray-700 bg-white shadow-md rounded-lg bg-clip-border">
+            <h2 className="text-sm">ASSETS HOLDING</h2>
+            <p className="text-sm	text-[#aeb4bc]">A Total of {assetData?.length} tokens</p>
+            <table className="w-full text-left table-auto min-w-max">
+              <thead>
+                <tr>
+                  {asset_table_head.map((head, index) => (
 
-        <div className="relative flex flex-col gap-4 px-6 py-4 w-full h-full text-gray-700 bg-white shadow-md rounded-lg bg-clip-border">
-          <h2 className="text-sm">ASSETS HOLDING</h2>
-          <p className="text-sm	text-[#aeb4bc]">A Total of {assetData?.length} tokens</p>
-          <table className="w-full text-left table-auto min-w-max">
-            <thead>
-              <tr>
-                {asset_table_head.map((head, index) => (
+                    <th key={index} className="p-4 border-b border-slate-300 bg-customBlue">
+                      <p className="block text-sm font-normal leading-none text-white">
+                        {head}
+                      </p>
+                    </th>
 
-                  <th key={index} className="p-4 border-b border-slate-300 bg-customBlue">
-                    <p className="block text-sm font-normal leading-none text-white">
-                      {head}
-                    </p>
-                  </th>
-
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {assetData?.length ? (assetData?.map((token, index) => {
-                return (
-                  <tr key={index} className="">
-                    <td className="p-4 border-b border-slate-200">
-                      <p className="block text-sm">
-                        {token.name}
-                      </p>
-                    </td>
-                    <td className="p-4 border-b border-slate-200">
-                      <p className="block text-sm">
-                        {token.symbol}
-                      </p>
-                    </td>
-                    <td className="p-4 border-b border-slate-200">
-                      <p className="block text-sm">
-                        {Number(token.amount / 100000000).toFixed(3)}
-                      </p>
-                    </td>
-                    <td className="p-4 border-b border-slate-200">
-                    </td>
-                    <td className="p-4 border-b border-slate-200">
-                    </td>
-                    <td className="p-4 border-b border-slate-200">
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {assetData?.length ? (assetData?.map((token, index) => {
+                  return (
+                    <tr key={index} className="">
+                      <td className="p-4 border-b border-slate-200">
+                        <p className="block text-sm">
+                          {token.name}
+                        </p>
+                      </td>
+                      <td className="p-4 border-b border-slate-200">
+                        <p className="block text-sm">
+                          {token.symbol}
+                        </p>
+                      </td>
+                      <td className="p-4 border-b border-slate-200">
+                        <p className="block text-sm">
+                          {Number(token.amount / 100000000).toFixed(3)}
+                        </p>
+                      </td>
+                      <td className="p-4 border-b border-slate-200">
+                      </td>
+                      <td className="p-4 border-b border-slate-200">
+                      </td>
+                      <td className="p-4 border-b border-slate-200">
+                      </td>
+                    </tr>
+                  )
+                })) : (
+                  <tr>
+                    <td colSpan={asset_table_head.length} className="text-center py-4 border-b border-slate-200">
+                      No Token
                     </td>
                   </tr>
-                )
-              })) : (
+                )}
+              </tbody>
+            </table>
+            {/* <Pagination align="center" current={currentPage} onChange={onChange} total={50} /> */}
+          </div>
+        }
+
+        {selectedTab === '1' &&
+          <div className="relative flex flex-col gap-4 px-6 py-4 w-full h-full text-gray-700 bg-white shadow-md rounded-lg bg-clip-border">
+            <h2 className="text-sm">NFT ASSETS</h2>
+            <p className="text-sm	text-[#aeb4bc]">A Total of {nftData?.length} NFTs</p>
+            <table className="w-full text-left table-auto min-w-max">
+              <thead>
                 <tr>
-                  <td colSpan={asset_table_head.length} className="text-center py-4 border-b border-slate-200">
-                    No Token
-                  </td>
+                  {nft_table_head.map((head, index) => (
+
+                    <th key={index} className="p-4 border-b border-slate-300 bg-customBlue">
+                      <p className="block text-sm font-normal leading-none text-white">
+                        {head}
+                      </p>
+                    </th>
+
+                  ))}
                 </tr>
-              )}
-            </tbody>
-          </table>
-          {/* <Pagination align="center" current={currentPage} onChange={onChange} total={50} /> */}
-        </div>
-
-        <div className="relative flex flex-col gap-4 px-6 py-4 w-full h-full text-gray-700 bg-white shadow-md rounded-lg bg-clip-border">
-          <h2 className="text-sm">NFT ASSETS</h2>
-          <p className="text-sm	text-[#aeb4bc]">A Total of {nftData?.length} NFTs</p>
-          <table className="w-full text-left table-auto min-w-max">
-            <thead>
-              <tr>
-                {nft_table_head.map((head, index) => (
-
-                  <th key={index} className="p-4 border-b border-slate-300 bg-customBlue">
-                    <p className="block text-sm font-normal leading-none text-white">
-                      {head}
-                    </p>
-                  </th>
-
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {nftData?.length ? (nftData?.map((item, index) => {
-                return (
-                  <tr key={index} className="">
-                    <td className="p-4 border-b border-slate-200">
-                      <p className="block text-sm">
-                        {item.name}
-                      </p>
-                    </td>
-                    <td className="p-4 border-b border-slate-200">
-                      <p className="block text-sm">
-                        {item.amount}
-                      </p>
-                    </td>
-                    <td className="p-4 border-b border-slate-200">
-                      <p className="block text-sm">
-                        {item.creator}
-                      </p>
+              </thead>
+              <tbody>
+                {nftData?.length ? (nftData?.map((item, index) => {
+                  return (
+                    <tr key={index} className="">
+                      <td className="p-4 border-b border-slate-200">
+                        <p className="block text-sm">
+                          {item.name}
+                        </p>
+                      </td>
+                      <td className="p-4 border-b border-slate-200">
+                        <p className="block text-sm">
+                          {item.amount}
+                        </p>
+                      </td>
+                      <td className="p-4 border-b border-slate-200">
+                        <p className="block text-sm">
+                          {item.creator}
+                        </p>
+                      </td>
+                    </tr>
+                  )
+                })) : (
+                  <tr>
+                    <td colSpan={nft_table_head.length} className="text-center py-4 border-b border-slate-200">
+                      No NFT
                     </td>
                   </tr>
-                )
-              })) : (
-                <tr>
-                  <td colSpan={nft_table_head.length} className="text-center py-4 border-b border-slate-200">
-                    No NFT
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-          {/* <Pagination align="center" current={currentPage} onChange={onChange} total={50} /> */}
-        </div>
+                )}
+              </tbody>
+            </table>
+            {/* <Pagination align="center" current={currentPage} onChange={onChange} total={50} /> */}
+          </div>
+        }
       </section>
     </main >
   );
