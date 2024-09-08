@@ -1,3 +1,4 @@
+import { fetchTokenMetadata } from '@/utils/getData';
 import 'dotenv/config';
 
 export const API_KEY = process.env.NEXT_PUBLIC_NODIT_API_KEY;

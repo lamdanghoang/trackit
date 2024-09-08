@@ -3,7 +3,6 @@ import React, { useEffect, useState } from "react";
 import { WalletName, useWallet } from '@aptos-labs/wallet-adapter-react';
 import { fetchAssetBalance, fetchNFTsBalance, BalanceDataType, NftDataType } from "@/utils/getData";
 import { Tabs } from 'antd';
-import { it } from "node:test";
 
 interface TableAssetDataType {
   name: string;
@@ -150,7 +149,7 @@ export default function HomePage() {
           })}
         />
         {selectedTab === '0' &&
-          <div className="relative flex flex-col gap-4 px-6 py-4 w-full h-full text-gray-700 bg-white shadow-md rounded-lg bg-clip-border">
+          <div className="-mt-10 relative flex flex-col gap-4 px-6 py-4 w-full h-full text-gray-700 bg-white shadow-md rounded-b-lg bg-clip-border">
             <h2 className="text-sm">ASSETS HOLDING</h2>
             <p className="text-sm	text-[#aeb4bc]">A Total of {assetData?.length} tokens</p>
             <table className="w-full text-left table-auto min-w-max">
@@ -208,7 +207,7 @@ export default function HomePage() {
         }
 
         {selectedTab === '1' &&
-          <div className="relative flex flex-col gap-4 px-6 py-4 w-full h-full text-gray-700 bg-white shadow-md rounded-lg bg-clip-border">
+          <div className="-mt-10 relative flex flex-col gap-4 px-6 py-4 w-full h-full text-gray-700 bg-white shadow-md rounded-b-lg bg-clip-border">
             <h2 className="text-sm">NFT ASSETS</h2>
             <p className="text-sm	text-[#aeb4bc]">A Total of {nftData?.length} NFTs</p>
             <table className="w-full text-left table-auto min-w-max">

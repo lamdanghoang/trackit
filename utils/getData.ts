@@ -192,12 +192,12 @@ export interface HolderDataType {
 }
 
 // Fetch top holders balance
-export const fetchTopHolder = async (numberAccount: number) => {
+export const fetchTopHolder = async (asset_type: string, numberAccount: number) => {
   const operationsDoc = `
 query MyQuery {
   current_fungible_asset_balances(
     limit: ${numberAccount}
-    where: {metadata: {asset_type: {_eq: "0x1::aptos_coin::AptosCoin"}}}
+    where: {metadata: {asset_type: {_eq: "${asset_type}"}}, amount: {_gt: "0"}}
     order_by: {amount: desc}
   ) {
     amount
@@ -289,6 +289,72 @@ export const fetchTransactionByAccount = async (account: string, numberTransacti
     throw new Error('Cannot fetch asset data. Try again later.');
   }
 }
+
+export interface TokenMetadataType {
+  asset_type: string;
+  creator_address: string;
+  decimals: number;
+  icon_uri: string | null;
+  last_transaction_timestamp: string,
+  last_transaction_version: number,
+  maximum_v2: number | null
+  name: string;
+  project_uri: string | null,
+  supply_aggregator_table_handle_v1: string | null;
+  supply_aggregator_table_key_v1: string | null;
+  supply_v2: string | null;
+  symbol: string;
+  token_standard: string;
+}
+
+export const fetchTokenMetadata = async () => {
+  const operationsDoc = `
+query MyQuery {
+  fungible_asset_metadata {
+    asset_type
+    creator_address
+    decimals
+    icon_uri
+    last_transaction_timestamp
+    last_transaction_version
+    maximum_v2
+    name
+    project_uri
+    supply_aggregator_table_handle_v1
+    supply_aggregator_table_key_v1
+    supply_v2
+    symbol
+    token_standard
+  }
+}
+`;
+
+  const options = {
+    method: 'POST',
+    headers: {
+      accept: 'application/json',
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      query: operationsDoc,
+      variables: {},
+      operationName: "MyQuery",
+    }),
+  };
+
+  try {
+    const response = await fetch(url, options);
+    if (response.ok) {
+      const result = await response.json();
+      return result.data.fungible_asset_metadata;
+    } else {
+      return [];
+    }
+  } catch (error) {
+    throw new Error('Cannot fetch token data. Try again later.');
+  }
+}
+
 
 // With ERC20
 
