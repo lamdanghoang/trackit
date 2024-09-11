@@ -1,5 +1,7 @@
 "use client";
 import GlobalContext from "@/context/store";
+import GroupIcon from "@/icons/Group";
+import WalletIcon from "@/icons/Wallet";
 import { WalletSelector } from "@aptos-labs/wallet-adapter-ant-design";
 import "@aptos-labs/wallet-adapter-ant-design/dist/index.css";
 import Link from "next/link";
@@ -16,8 +18,14 @@ const Header = () => {
         <header className="p-4 mx-auto w-full max-w-5xl flex items-center justify-between font-mono text-sm">
             <div className="text-3xl font-bold"><Link href={"/"}>Trackit</Link></div>
             <nav className="flex gap-20">
-                <Link href={"/"}>My assets</Link>
-                <Link href={"/top-holders"}>Top holders</Link>
+                <Link href={"/"} className="flex items-end gap-1">
+                    <WalletIcon />
+                    <span>My assets</span>
+                </Link>
+                <Link href={"/top-holders"} className="flex items-end gap-1">
+                    <GroupIcon />
+                    <span>Top holders</span>
+                </Link>
             </nav>
             <div className="flex items-center gap-1">
                 <select
