@@ -31,11 +31,11 @@ const getTransactionTableData = (data: any[]) => {
     return data.reverse().map((item) => {
         const version: string = item.version;
         const hash: string = item.hash;
-        const shortHash: string = `${hash.slice(0, 5)}...${hash.slice(-6, -1)}`;
+        const shortHash: string = `${hash.slice(0, 5)}...${hash.slice(-6)}`;
         const timestamp: string = item.timestamp;
         const date = timestampToString(timestamp);
         const sender: string = item.sender;
-        const shortSender: string = `${sender.slice(0, 4)}...${sender.slice(-7, -1)}`;
+        const shortSender: string = `${sender.slice(0, 4)}...${sender.slice(-7)}`;
         const amount: number = +(item.payload.arguments[1]) / 100000000;
 
         return {
@@ -55,8 +55,8 @@ const getTableData = (data: BalanceDataType[]) => {
     // This function will transform the balance data and potentially fetch additional info
     return data.map((item) => {
         // Extract relevant information from each balance item
-        const name = item.metadata.name;
-        const symbol = item.metadata.symbol;
+        const name = item.metadata?.name;
+        const symbol = item.metadata?.symbol;
         const amount = item.amount;
         const price = '';
         const percentChangeFor24h = '';
@@ -95,7 +95,7 @@ export default function AccountPage() {
 
         fetchData();
         console.log(transactionData);
-    }, []);
+    }, [params.address]);
 
     return (
         <main className="flex-grow px-20 py-8">
@@ -108,13 +108,13 @@ export default function AccountPage() {
                     <h2 className="mb-1 text-xs leading-normal font-bold text-[#76808f]">Aptos Balance</h2>
                     <div className="flex justify-between items-end">
                         <p className="text-xl font-semibold leading-6">{aptBalance ? (aptBalance / 100000000) : '--'} APT</p>
-                        <p className="text-xs ">5 $</p>
+                        {/* <p className="text-xs ">5 $</p> */}
                     </div>
                 </div>
                 <div>
                     <div className="relative flex flex-col gap-4 px-6 py-4 w-full h-full text-gray-700 bg-white shadow-md rounded-lg bg-clip-border">
                         <h2 className="text-sm">TRANSACTIONS</h2>
-                        <p className="text-sm	text-[#aeb4bc]">Latest 16 from a total of 16 transactions</p>
+                        <p className="text-sm	text-[#aeb4bc]">Latest {transactionData?.length} transactions</p>
                         <table className="w-full text-left table-auto min-w-max">
                             <thead>
                                 <tr>
@@ -155,7 +155,7 @@ export default function AccountPage() {
                                             </td>
                                             <td className="p-4 border-b border-slate-200">
                                                 <p className="block text-sm">
-                                                    {item.amount} APT
+                                                    {item.amount || '0'} APT
                                                 </p>
                                             </td>
                                         </tr>

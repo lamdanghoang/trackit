@@ -1,21 +1,23 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { WalletName, useWallet } from '@aptos-labs/wallet-adapter-react';
 import { fetchAssetBalance, fetchNFTsBalance, BalanceDataType, NftDataType } from "@/utils/getData";
 import { Tabs } from 'antd';
+import GlobalContext from "@/context/store";
+import { getBlockchain } from "@/utils/chain";
 
 interface TableAssetDataType {
   name: string;
   symbol: string;
-  amount: number;
+  quantity: number;
   price: string;
-  percentChangeFor24h: string;
+  change24h: string;
   value: string;
 }
 
 interface TableNftDataType {
   name: string;
-  amount: number;
+  quantity: number;
   creator: string;
 }
 
@@ -45,9 +47,9 @@ const getTableData = (data: BalanceDataType[]) => {
     // Extract relevant information from each balance item
     const name = item.metadata.name;
     const symbol = item.metadata.symbol;
-    const amount = item.amount;
+    const quantity = item.amount;
     const price = '';
-    const percentChangeFor24h = '';
+    const change24h = '';
     const value = '';
 
     // Fetch price and change data from an external API (replace with your logic)
@@ -62,9 +64,9 @@ const getTableData = (data: BalanceDataType[]) => {
     return {
       name,
       symbol,
-      amount,
+      quantity,
       price,
-      percentChangeFor24h,
+      change24h,
       value,
     };
   });
@@ -75,12 +77,12 @@ const getNftTableData = (data: NftDataType[]) => {
   return data.map((item) => {
     // Extract relevant information from each balance item
     const name = item.current_token_data.token_name;
-    const amount = item.amount;
+    const quantity = item.amount;
     const creator = item.current_token_data.current_collection.creator_address;
 
     return {
       name,
-      amount,
+      quantity,
       creator,
     };
   });
@@ -88,32 +90,52 @@ const getNftTableData = (data: NftDataType[]) => {
 
 export default function HomePage() {
   const { connect, disconnect, account, connected } = useWallet();
-  const [aptBalance, setAptBalance] = useState<number>();
+  const [aptBalance, setAptBalance] = useState<number | undefined>();
   const [currentAddress, setCurrentAddress] = useState();
   const [assetData, setAssetData] = useState<TableAssetDataType[] | []>();
   const [nftData, setNftData] = useState<TableNftDataType[] | []>();
   const [selectedTab, setSelectedTab] = useState<string>('0');
   const [currentPage, setCurrentPage] = useState(1);
+  const { chain } = useContext(GlobalContext);
 
   useEffect(() => {
+    const blockchain = getBlockchain(chain);
+
     const fetchData = async () => {
       if (account?.address) {
-        const assetData = await fetchAssetBalance(account?.address);
-        const processedAssetData = getTableData(assetData);
+        if (chain === 'apt') {
+          const assetData = await blockchain.fetchAssetBalance(account?.address);
+          const processedAssetData = getTableData(assetData);
 
-        const assetBalance = processedAssetData.filter(token => token.symbol === 'APT');
+          const assetBalance = processedAssetData.filter(token => token.symbol === 'APT');
 
-        const nftData = await fetchNFTsBalance(account?.address);
-        const processedNftData = getNftTableData(nftData);
+          const nftData = await blockchain.fetchNFTsBalance(account?.address);
+          const processedNftData = getNftTableData(nftData);
 
-        setAptBalance(assetBalance[0].amount);
-        setAssetData(processedAssetData);
-        setNftData(processedNftData);
+          setAptBalance(assetBalance[0].quantity);
+          setAssetData(processedAssetData);
+          setNftData(processedNftData);
+        }
+
+        if (chain === 'sui' || chain === 'icp') {
+          const assetData: TableAssetDataType[] = await blockchain.fetchAssetBalance(account?.address);
+          let assetBalance: TableAssetDataType[];
+          if (chain === 'sui') {
+            assetBalance = assetData.filter(token => token.symbol === 'SUI');
+          } else {
+            assetBalance = assetData.filter(token => token.symbol === 'ICP');
+          }
+          const nftData = await blockchain.fetchNFTsBalance(account?.address);
+
+          assetBalance.length > 0 ? setAptBalance(assetBalance[0].quantity) : setAptBalance(0);
+          setAssetData(assetData);
+          setNftData(nftData);
+        }
       }
     };
 
     fetchData();
-  }, [account?.address]);
+  }, [account?.address, chain]);
 
   // const onChange: PaginationProps['onChange'] = (page) => {
   //   console.log(page);
@@ -129,13 +151,22 @@ export default function HomePage() {
       <section className="flex flex-col gap-6">
         <div>
           <div className="text-2xl leading-normal font-semibold">Your Account</div>
-          <div>{account?.address}</div>
+          <div>
+            {chain === "apt" && account?.address}
+
+          </div>
         </div>
         <div className="bg-white p-4 rounded-lg">
-          <h2 className="mb-1 text-xs leading-normal font-bold text-[#76808f]">Aptos Balance</h2>
+          <h2 className="mb-1 text-xs leading-normal font-bold text-[#76808f]">
+            {chain === "apt" ? "Aptos" : chain === "sui" ? "Sui" : "Icp"} Balance
+          </h2>
           <div className="flex justify-between items-end">
-            <p className="text-xl font-semibold leading-6	">{aptBalance ? aptBalance / 100000000 : '--'} APT</p>
-            <p className="text-xs ">5 $</p>
+            <p className="text-xl font-semibold leading-6	">
+              {chain === "apt" && (aptBalance ? `${aptBalance / 100000000} APT` : '-- APT')}
+              {chain === "sui" && (aptBalance ? `${aptBalance} SUI` : '-- SUI')}
+              {chain === "icp" && (aptBalance ? `${aptBalance} ICP` : '-- ICP')}
+            </p>
+            {/* <p className="text-xs ">5 $</p> */}
           </div>
         </div>
         <Tabs
@@ -182,14 +213,17 @@ export default function HomePage() {
                       </td>
                       <td className="p-4 border-b border-slate-200">
                         <p className="block text-sm">
-                          {Number(token.amount / 100000000).toFixed(3)}
+                          {chain === "apt" ? Number(token.quantity / 100000000).toFixed(3) : Number(token.quantity).toFixed(2)}
                         </p>
                       </td>
                       <td className="p-4 border-b border-slate-200">
+                        {chain !== "apt" ? `${Number(token.price).toFixed(2)} $` : "N/a"}
                       </td>
                       <td className="p-4 border-b border-slate-200">
+                        {chain !== "apt" ? `${token.change24h} %` : "N/a"}
                       </td>
                       <td className="p-4 border-b border-slate-200">
+                        {chain !== "apt" ? `${(Number(token.quantity) * Number(token.price)).toFixed(2)} $` : "N/a"}
                       </td>
                     </tr>
                   )
@@ -235,7 +269,7 @@ export default function HomePage() {
                       </td>
                       <td className="p-4 border-b border-slate-200">
                         <p className="block text-sm">
-                          {item.amount}
+                          {item.quantity}
                         </p>
                       </td>
                       <td className="p-4 border-b border-slate-200">

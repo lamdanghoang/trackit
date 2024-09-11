@@ -286,7 +286,7 @@ export const fetchTransactionByAccount = async (account: string, numberTransacti
       return null;
     }
   } catch (error) {
-    throw new Error('Cannot fetch asset data. Try again later.');
+    throw new Error('Cannot fetch transaction data. Try again later.');
   }
 }
 
