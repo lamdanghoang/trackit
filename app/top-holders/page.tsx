@@ -1,10 +1,13 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { WalletName, useWallet } from '@aptos-labs/wallet-adapter-react';
 import { fetchAssetBalance, fetchTokenMetadata, fetchTopHolder, HolderDataType, TokenMetadataType } from "@/utils/getData";
 import { Pagination, Select } from "antd";
 import type { PaginationProps, SelectProps } from 'antd';
 import Link from "next/link";
+import { getBlockchain } from "@/utils/chain";
+import GlobalContext from "@/context/store";
+import { tokenAptLists } from "@/constants/constants";
 
 const top_holder_table_head = [
     'Rank',
@@ -13,42 +16,63 @@ const top_holder_table_head = [
     'Percentage',
 ]
 
-const getDataList = (data: TokenMetadataType[]) => {
-    return data.map(item => {
-        return {
-            label: item.symbol,
-            value: item.asset_type,
-        }
-    })
-}
+// const getDataList = (data: TokenMetadataType[]) => {
+//     return data.map(item => {
+//         return {
+//             label: item.symbol,
+//             value: item.asset_type,
+//         }
+//     })
+// }
 
 export default function HoldersPage() {
     const [topHolderData, setTopHolderData] = useState<HolderDataType[] | []>();
-    const [tokenList, setTokenList] = useState<{ value: string, label: string }[]>();
-    const [currentToken, setCurrentToken] = useState<string>('0x1::aptos_coin::AptosCoin');
+    const [tokenList, setTokenList] = useState<{ value: string, label: string, supply: number }[]>();
+    const [currentToken, setCurrentToken] = useState<{ value: string, label: string, supply: number }>(
+        {
+            label: "APT",
+            value: "0x1::aptos_coin::AptosCoin",
+            supply: 1007589983.9
+        }
+    );
+    const [supply, setSupply] = useState(1007589983.9);
     const [currentPage, setCurrentPage] = useState(1);
-
+    const { chain } = useContext(GlobalContext);
 
     useEffect(() => {
+        const blockchain = getBlockchain(chain);
+
         const fetchData = async () => {
+            // Set token list for select-option
             if (!tokenList) {
-                const list = await fetchTokenMetadata();
-                const processList = getDataList(list);
-                setTokenList(processList);
+                // const list = await fetchTokenMetadata();
+                // const processList = getDataList(list);
+                // setTokenList(processList);
+                setTokenList(tokenAptLists);
             }
-            const holderData = await fetchTopHolder(currentToken, 10);
-            setTopHolderData(holderData);
+
+            if (chain === 'apt') {
+                const holderData = await blockchain.fetchTopHolder(currentToken.value, 20);
+                setTopHolderData(holderData);
+            }
+
+            // if (chain === 'sui' || chain === 'icp') {
+            //     const holderData = await blockchain.fetchTopHolder()
+            // }
         };
 
         fetchData();
-    }, [currentToken]);
+    }, [currentToken, chain]);
 
     const searchHandler = (value: string) => {
-        setCurrentToken(value);
-        console.log(value)
+        const token = tokenList?.filter(token => token.value === value);
+        if (token) {
+            setCurrentToken(token[0]);
+        }
+        console.log(currentToken)
     }
 
-    const onChange: PaginationProps['onChange'] = (page) => {
+    const changeHandler: PaginationProps['onChange'] = (page) => {
         console.log(page);
         setCurrentPage(page);
     };
@@ -86,12 +110,12 @@ export default function HoldersPage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {topHolderData?.length ? topHolderData?.map((token, index) => {
+                                {topHolderData?.length ? topHolderData?.slice((currentPage - 1) * 10, (currentPage - 1) * 10 + 10).map((token, index) => {
                                     return (
                                         <tr key={index} className="">
                                             <td className="p-4 border-b border-slate-200">
                                                 <p className="block text-sm">
-                                                    {index + 1}
+                                                    {(currentPage - 1) * 10 + index + 1}
                                                 </p>
                                             </td>
                                             <td className="p-4 border-b border-slate-200">
@@ -101,10 +125,11 @@ export default function HoldersPage() {
                                             </td>
                                             <td className="p-4 border-b border-slate-200">
                                                 <p className="block text-sm">
-                                                    {Number(token.amount / 100000000).toFixed(2)} {token.metadata.symbol}
+                                                    {Number(token.amount / (currentToken.value === "0x1::aptos_coin::AptosCoin" ? 100000000 : 1000000)).toFixed(2)}{chain === "apt" && ` ${token.metadata.symbol}`}
                                                 </p>
                                             </td>
                                             <td className="p-4 border-b border-slate-200">
+                                                {(Number(token.amount / (currentToken.value === "0x1::aptos_coin::AptosCoin" ? 100000000 : 1000000)) / currentToken.supply * 100).toFixed(4)}%
                                             </td>
                                         </tr>
                                     )
@@ -117,7 +142,7 @@ export default function HoldersPage() {
                                 )}
                             </tbody>
                         </table>
-                        {/* <Pagination align="center" current={currentPage} onChange={onChange} total={50} /> */}
+                        <Pagination align="center" current={currentPage} onChange={changeHandler} total={20} pageSize={10} />
                     </div>
                 </div>
             </section>

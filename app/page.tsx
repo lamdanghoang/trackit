@@ -2,7 +2,7 @@
 import React, { useContext, useEffect, useState } from "react";
 import { WalletName, useWallet } from '@aptos-labs/wallet-adapter-react';
 import { fetchAssetBalance, fetchNFTsBalance, BalanceDataType, NftDataType } from "@/utils/getData";
-import { Tabs } from 'antd';
+import { Pagination, PaginationProps, Tabs } from 'antd';
 import GlobalContext from "@/context/store";
 import { getBlockchain } from "@/utils/chain";
 
@@ -137,10 +137,10 @@ export default function HomePage() {
     fetchData();
   }, [account?.address, chain]);
 
-  // const onChange: PaginationProps['onChange'] = (page) => {
-  //   console.log(page);
-  //   setCurrentPage(page);
-  // };
+  const changeHandler: PaginationProps['onChange'] = (page) => {
+    console.log(page);
+    setCurrentPage(page);
+  };
 
   const tabChangeHandler = (key: string) => {
     setSelectedTab(key);
@@ -236,7 +236,7 @@ export default function HomePage() {
                 )}
               </tbody>
             </table>
-            {/* <Pagination align="center" current={currentPage} onChange={onChange} total={50} /> */}
+            <Pagination align="center" current={currentPage} onChange={changeHandler} total={10} />
           </div>
         }
 
@@ -288,7 +288,7 @@ export default function HomePage() {
                 )}
               </tbody>
             </table>
-            {/* <Pagination align="center" current={currentPage} onChange={onChange} total={50} /> */}
+            <Pagination align="center" current={currentPage} onChange={changeHandler} total={10} />
           </div>
         }
       </section>

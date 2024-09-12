@@ -1,14 +1,53 @@
 'use client'
 
-import { fetchTransactionByAccount, TableTransactionDataType, fetchAssetBalance, BalanceDataType } from '@/utils/getData';
+import GlobalContext from '@/context/store';
+import { getBlockchain } from '@/utils/chain';
+import { fetchTransactionByAccount, fetchAssetBalance, BalanceDataType } from '@/utils/getData';
+import { Pagination, PaginationProps } from 'antd';
 import { useParams } from 'next/navigation'
-import { useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
+
+interface TableAssetDataType {
+    name: string;
+    symbol: string;
+    quantity: number;
+    price: string;
+    change24h: string;
+    value: string;
+}
+
+interface TableTransactionDataType {
+    version: string;
+    block: string;
+    hash: string;
+    shortHash: string;
+    timestamp: string;
+    date: string;
+    from: string;
+    to: string;
+    shortFrom: string;
+    shortTo: string;
+    amount: number;
+    fee: number;
+    func: string;
+}
 
 const table_head = [
     'Version #',
     'Hash',
     'Age',
     'Sender',
+    'Amount',
+];
+
+const icp_sui_table_head = [
+    'Block',
+    'Hash',
+    'Date',
+    'From',
+    'To',
+    'Function',
+    'Fee',
     'Amount',
 ];
 
@@ -25,28 +64,43 @@ function timestampToString(timestamp: string) {
     return `${month} ${day}, ${year}`;
 }
 
-
 const getTransactionTableData = (data: any[]) => {
     // This function will transform the data and potentially fetch additional info
     return data.reverse().map((item) => {
-        const version: string = item.version;
+        const version: string = item.version || '';
+        const block: string = item.block || ''
         const hash: string = item.hash;
         const shortHash: string = `${hash.slice(0, 5)}...${hash.slice(-6)}`;
         const timestamp: string = item.timestamp;
         const date = timestampToString(timestamp);
-        const sender: string = item.sender;
-        const shortSender: string = `${sender.slice(0, 4)}...${sender.slice(-7)}`;
-        const amount: number = +(item.payload.arguments[1]) / 100000000;
+        const from: string = item.sender || item.from;
+        const shortFrom: string = from ? `${from.slice(0, 4)}...${from.slice(-7)}` : '';
+        const to: string = item.to || '';
+        const shortTo: string = to ? `${to.slice(0, 4)}...${to.slice(-7)}` : '';
+        let amount: number = 0;
+        if (item.payload) {
+            amount = +(item.payload.arguments[1]) / 100000000;
+        }
+        else if (item.amount) {
+            amount = item.amount;
+        }
+        const fee: number = item.fee || 0;
+        const func: string = item.function || '';
 
         return {
             version,
+            block,
             hash,
             shortHash,
             timestamp,
             date,
-            sender,
-            shortSender,
+            from,
+            shortFrom,
+            to,
+            shortTo,
             amount,
+            fee,
+            func,
         };
     });
 };
@@ -77,25 +131,52 @@ export default function AccountPage() {
     const params = useParams<{ address: string }>();
     const [aptBalance, setAptBalance] = useState<number>();
     const [transactionData, setTransactionData] = useState<TableTransactionDataType[] | []>();
+    const { chain } = useContext(GlobalContext);
+    const [currentPage, setCurrentPage] = useState(1);
 
     useEffect(() => {
+        const blockchain = getBlockchain(chain);
+
         const fetchData = async () => {
             if (params.address) {
-                const assetData = await fetchAssetBalance(params.address);
-                const processedAssetData = getTableData(assetData);
-                const assetBalance = processedAssetData.filter(token => token.symbol === 'APT');
+                if (chain === 'apt') {
+                    const assetData = await blockchain.fetchAssetBalance(params.address);
+                    const processedAssetData = getTableData(assetData);
+                    const assetBalance = processedAssetData.filter(token => token.symbol === 'APT');
 
-                const transactionData = await fetchTransactionByAccount(params.address, 10);
-                const processedData = getTransactionTableData(transactionData);
+                    const transactionData = await blockchain.fetchTransactionByAccount(params.address, 10);
+                    const processedData = getTransactionTableData(transactionData);
 
-                setTransactionData(processedData);
-                setAptBalance(assetBalance[0].amount);
+                    setTransactionData(processedData);
+                    setAptBalance(assetBalance[0].amount);
+                }
+
+                if (chain === 'sui' || chain === 'icp') {
+                    const assetData: TableAssetDataType[] = await blockchain.fetchAssetBalance(params.address);
+                    let assetBalance: TableAssetDataType[];
+                    if (chain === 'sui') {
+                        assetBalance = assetData.filter(token => token.symbol === 'SUI');
+                    } else {
+                        assetBalance = assetData.filter(token => token.symbol === 'ICP');
+                    }
+                    assetBalance.length > 0 ? setAptBalance(assetBalance[0].quantity) : setAptBalance(0);
+
+                    const transactionData = await blockchain.fetchTransactionByAccount(params.address, 10);
+                    console.log(transactionData);
+                    const processedData = getTransactionTableData(transactionData);
+                    console.log(processedData);
+                    setTransactionData(processedData);
+                }
             }
         }
 
         fetchData();
-        console.log(transactionData);
-    }, [params.address]);
+    }, [params.address, chain]);
+
+    const changeHandler: PaginationProps['onChange'] = (page) => {
+        console.log(page);
+        setCurrentPage(page);
+    };
 
     return (
         <main className="flex-grow px-20 py-8">
@@ -107,7 +188,11 @@ export default function AccountPage() {
                 <div className="bg-white p-4 rounded-lg">
                     <h2 className="mb-1 text-xs leading-normal font-bold text-[#76808f]">Aptos Balance</h2>
                     <div className="flex justify-between items-end">
-                        <p className="text-xl font-semibold leading-6">{aptBalance ? (aptBalance / 100000000) : '--'} APT</p>
+                        <p className="text-xl font-semibold leading-6	">
+                            {chain === "apt" && (aptBalance ? `${aptBalance / 100000000} APT` : '-- APT')}
+                            {chain === "sui" && (aptBalance ? `${aptBalance} SUI` : '-- SUI')}
+                            {chain === "icp" && (aptBalance ? `${aptBalance} ICP` : '-- ICP')}
+                        </p>
                         {/* <p className="text-xs ">5 $</p> */}
                     </div>
                 </div>
@@ -118,7 +203,16 @@ export default function AccountPage() {
                         <table className="w-full text-left table-auto min-w-max">
                             <thead>
                                 <tr>
-                                    {table_head.map((head, index) => (
+                                    {chain === "apt" && table_head.map((head, index) => (
+
+                                        <th key={index} className="p-4 border-b border-slate-300 bg-customBlue">
+                                            <p className="block text-sm font-normal leading-none text-white">
+                                                {head}
+                                            </p>
+                                        </th>
+
+                                    ))}
+                                    {chain !== "apt" && icp_sui_table_head.map((head, index) => (
 
                                         <th key={index} className="p-4 border-b border-slate-300 bg-customBlue">
                                             <p className="block text-sm font-normal leading-none text-white">
@@ -130,12 +224,13 @@ export default function AccountPage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {transactionData?.map((item, index) => {
+                                {transactionData ? transactionData?.map((item, index) => {
                                     return (
                                         <tr key={index} className="">
                                             <td className="p-4 border-b border-slate-200">
                                                 <p className="block text-sm">
-                                                    {item.version}
+                                                    {chain === "apt" && item.version}
+                                                    {chain !== "apt" && item.block}
                                                 </p>
                                             </td>
                                             <td className="p-4 border-b border-slate-200">
@@ -150,20 +245,45 @@ export default function AccountPage() {
                                             </td>
                                             <td className="p-4 border-b border-slate-200">
                                                 <p className="block text-sm">
-                                                    {item.shortSender}
+                                                    {item.shortFrom}
                                                 </p>
                                             </td>
+                                            {chain !== "apt" && (
+                                                <>
+                                                    <td className="p-4 border-b border-slate-200">
+                                                        <p className="block text-sm">
+                                                            {item.shortTo}
+                                                        </p>
+                                                    </td>
+                                                    <td className="p-4 border-b border-slate-200">
+                                                        <p className="block text-sm">
+                                                            {item.func}
+                                                        </p>
+                                                    </td>
+                                                    <td className="p-4 border-b border-slate-200">
+                                                        <p className="block text-sm">
+                                                            {item.fee}
+                                                        </p>
+                                                    </td>
+                                                </>
+                                            )}
                                             <td className="p-4 border-b border-slate-200">
                                                 <p className="block text-sm">
-                                                    {item.amount || '0'} APT
+                                                    {`${item.amount || '0'} ${chain === "apt" ? "APT" : ""}`}
                                                 </p>
                                             </td>
                                         </tr>
                                     )
-                                })}
+                                }) : (
+                                    <tr>
+                                        <td colSpan={chain === "apt" ? table_head.length : icp_sui_table_head.length} className="text-center py-4 border-b border-slate-200">
+                                            No NFT
+                                        </td>
+                                    </tr>
+                                )}
                             </tbody>
                         </table>
-                        {/* <Pagination align="center" current={currentPage} onChange={onChange} total={50} /> */}
+                        <Pagination align="center" current={currentPage} onChange={changeHandler} total={10} />
                     </div>
                 </div>
             </section>
