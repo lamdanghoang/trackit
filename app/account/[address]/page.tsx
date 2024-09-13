@@ -144,7 +144,7 @@ export default function AccountPage() {
                     const processedAssetData = getTableData(assetData);
                     const assetBalance = processedAssetData.filter(token => token.symbol === 'APT');
 
-                    const transactionData = await blockchain.fetchTransactionByAccount(params.address, 10);
+                    const transactionData = await blockchain.fetchTransactionByAccount(params.address, 100);
                     const processedData = getTransactionTableData(transactionData);
 
                     setTransactionData(processedData);
@@ -162,28 +162,26 @@ export default function AccountPage() {
                     assetBalance.length > 0 ? setAptBalance(assetBalance[0].quantity) : setAptBalance(0);
 
                     const transactionData = await blockchain.fetchTransactionByAccount(params.address, 10);
-                    console.log(transactionData);
                     const processedData = getTransactionTableData(transactionData);
-                    console.log(processedData);
                     setTransactionData(processedData);
                 }
             }
         }
 
         fetchData();
+        setCurrentPage(1);
     }, [params.address, chain]);
 
     const changeHandler: PaginationProps['onChange'] = (page) => {
-        console.log(page);
         setCurrentPage(page);
     };
 
     return (
-        <main className="flex-grow px-20 py-8">
+        <main className="flex-grow px-5 sm:px-20 py-8">
             <section className="flex flex-col gap-6">
                 <div>
                     <div className="text-2xl leading-normal font-semibold">Account</div>
-                    <div>{params.address}</div>
+                    <div className="text-ellipsis overflow-hidden">{params.address}</div>
                 </div>
                 <div className="bg-white p-4 rounded-lg">
                     <h2 className="mb-1 text-xs leading-normal font-bold text-[#76808f]">Aptos Balance</h2>
@@ -200,90 +198,97 @@ export default function AccountPage() {
                     <div className="relative flex flex-col gap-4 px-6 py-4 w-full h-full text-gray-700 bg-white shadow-md rounded-lg bg-clip-border">
                         <h2 className="text-sm">TRANSACTIONS</h2>
                         <p className="text-sm	text-[#aeb4bc]">Latest {transactionData?.length} transactions</p>
-                        <table className="w-full text-left table-auto min-w-max">
-                            <thead>
-                                <tr>
-                                    {chain === "apt" && table_head.map((head, index) => (
+                        <div className="overflow-x-auto">
+                            <div className="inline-block min-w-full align-middle">
+                                <div className="overflow-hidden border-gray-200 shadow sm:rounded-lg">
 
-                                        <th key={index} className="p-4 border-b border-slate-300 bg-customBlue">
-                                            <p className="block text-sm font-normal leading-none text-white">
-                                                {head}
-                                            </p>
-                                        </th>
+                                    <table className="mb-2 w-full text-left table-auto min-w-max">
+                                        <thead>
+                                            <tr>
+                                                {chain === "apt" && table_head.map((head, index) => (
 
-                                    ))}
-                                    {chain !== "apt" && icp_sui_table_head.map((head, index) => (
-
-                                        <th key={index} className="p-4 border-b border-slate-300 bg-customBlue">
-                                            <p className="block text-sm font-normal leading-none text-white">
-                                                {head}
-                                            </p>
-                                        </th>
-
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {transactionData ? transactionData?.map((item, index) => {
-                                    return (
-                                        <tr key={index} className="">
-                                            <td className="p-4 border-b border-slate-200">
-                                                <p className="block text-sm">
-                                                    {chain === "apt" && item.version}
-                                                    {chain !== "apt" && item.block}
-                                                </p>
-                                            </td>
-                                            <td className="p-4 border-b border-slate-200">
-                                                <p className="block text-sm">
-                                                    {item.shortHash}
-                                                </p>
-                                            </td>
-                                            <td className="p-4 border-b border-slate-200">
-                                                <p className="block text-sm">
-                                                    {item.date}
-                                                </p>
-                                            </td>
-                                            <td className="p-4 border-b border-slate-200">
-                                                <p className="block text-sm">
-                                                    {item.shortFrom}
-                                                </p>
-                                            </td>
-                                            {chain !== "apt" && (
-                                                <>
-                                                    <td className="p-4 border-b border-slate-200">
-                                                        <p className="block text-sm">
-                                                            {item.shortTo}
+                                                    <th key={index} className="p-4 border-b border-slate-300 bg-customBlue">
+                                                        <p className="block text-sm font-normal leading-none text-white">
+                                                            {head}
                                                         </p>
-                                                    </td>
-                                                    <td className="p-4 border-b border-slate-200">
-                                                        <p className="block text-sm">
-                                                            {item.func}
+                                                    </th>
+
+                                                ))}
+                                                {chain !== "apt" && icp_sui_table_head.map((head, index) => (
+
+                                                    <th key={index} className="p-4 border-b border-slate-300 bg-customBlue">
+                                                        <p className="block text-sm font-normal leading-none text-white">
+                                                            {head}
                                                         </p>
+                                                    </th>
+
+                                                ))}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {transactionData ? transactionData?.slice((currentPage - 1) * 10, (currentPage - 1) * 10 + 10).map((item, index) => {
+                                                return (
+                                                    <tr key={index} className="transition-colors duration-200 hover:bg-sky-50">
+                                                        <td className="p-4 border-b border-slate-200">
+                                                            <p className="block text-sm">
+                                                                {chain === "apt" && item.version}
+                                                                {chain !== "apt" && item.block}
+                                                            </p>
+                                                        </td>
+                                                        <td className="p-4 border-b border-slate-200">
+                                                            <p className="block text-sm">
+                                                                {item.shortHash}
+                                                            </p>
+                                                        </td>
+                                                        <td className="p-4 border-b border-slate-200">
+                                                            <p className="block text-sm">
+                                                                {item.date}
+                                                            </p>
+                                                        </td>
+                                                        <td className="p-4 border-b border-slate-200">
+                                                            <p className="block text-sm">
+                                                                {item.shortFrom}
+                                                            </p>
+                                                        </td>
+                                                        {chain !== "apt" && (
+                                                            <>
+                                                                <td className="p-4 border-b border-slate-200">
+                                                                    <p className="block text-sm">
+                                                                        {item.shortTo}
+                                                                    </p>
+                                                                </td>
+                                                                <td className="p-4 border-b border-slate-200">
+                                                                    <p className="block text-sm">
+                                                                        {item.func}
+                                                                    </p>
+                                                                </td>
+                                                                <td className="p-4 border-b border-slate-200">
+                                                                    <p className="block text-sm">
+                                                                        {item.fee}
+                                                                    </p>
+                                                                </td>
+                                                            </>
+                                                        )}
+                                                        <td className="p-4 border-b border-slate-200">
+                                                            <p className="block text-sm">
+                                                                {`${item.amount || '0'} ${chain === "apt" ? "APT" : ""}`}
+                                                            </p>
+                                                        </td>
+                                                    </tr>
+                                                )
+                                            }) : (
+                                                <tr>
+                                                    <td colSpan={chain === "apt" ? table_head.length : icp_sui_table_head.length} className="text-center py-4 border-b border-slate-200">
+                                                        No NFT
                                                     </td>
-                                                    <td className="p-4 border-b border-slate-200">
-                                                        <p className="block text-sm">
-                                                            {item.fee}
-                                                        </p>
-                                                    </td>
-                                                </>
+                                                </tr>
                                             )}
-                                            <td className="p-4 border-b border-slate-200">
-                                                <p className="block text-sm">
-                                                    {`${item.amount || '0'} ${chain === "apt" ? "APT" : ""}`}
-                                                </p>
-                                            </td>
-                                        </tr>
-                                    )
-                                }) : (
-                                    <tr>
-                                        <td colSpan={chain === "apt" ? table_head.length : icp_sui_table_head.length} className="text-center py-4 border-b border-slate-200">
-                                            No NFT
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                        <Pagination align="center" current={currentPage} onChange={changeHandler} total={10} />
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        <Pagination align="center" current={currentPage} onChange={changeHandler} total={transactionData?.length} pageSize={10} />
                     </div>
                 </div>
             </section>

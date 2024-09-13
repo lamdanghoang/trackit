@@ -188,7 +188,9 @@ export interface HolderDataType {
     decimals: number;
     creator_address: string | null;
     asset_type: string | null;
-  }
+  };
+  address: string | null;
+  percentage: number | null;
 }
 
 // Fetch top holders balance

@@ -32,7 +32,7 @@ export default function HoldersPage() {
         {
             label: "APT",
             value: "0x1::aptos_coin::AptosCoin",
-            supply: 1007589983.9
+            supply: 1104566513.1
         }
     );
     const [supply, setSupply] = useState(1007589983.9);
@@ -52,13 +52,14 @@ export default function HoldersPage() {
             }
 
             if (chain === 'apt') {
-                const holderData = await blockchain.fetchTopHolder(currentToken.value, 20);
+                const holderData = await blockchain.fetchTopHolder(currentToken.value, 30, chain);
                 setTopHolderData(holderData);
             }
 
-            // if (chain === 'sui' || chain === 'icp') {
-            //     const holderData = await blockchain.fetchTopHolder()
-            // }
+            if (chain === 'sui' || chain === 'icp') {
+                const holderData = await blockchain.fetchTopHolder("", 1, chain);
+                setTopHolderData(holderData);
+            }
         };
 
         fetchData();
@@ -69,16 +70,14 @@ export default function HoldersPage() {
         if (token) {
             setCurrentToken(token[0]);
         }
-        console.log(currentToken)
     }
 
     const changeHandler: PaginationProps['onChange'] = (page) => {
-        console.log(page);
         setCurrentPage(page);
     };
 
     return (
-        <main className="flex-grow px-20 py-8">
+        <main className="flex-grow px-5 sm:px-20 py-8">
             <section className="flex flex-col gap-6">
                 <div className="text-2xl leading-normal font-semibold">Top Holders By Token Balance</div>
                 <div>
@@ -96,53 +95,59 @@ export default function HoldersPage() {
                             />
                         </div>
                         <p className="text-sm text-[#aeb4bc]">A Total of {topHolderData ? topHolderData?.length : '--'} holders</p>
-                        <table className="w-full text-left table-auto min-w-max">
-                            <thead>
-                                <tr>
-                                    {top_holder_table_head.map((head, index) => (
-                                        <th key={index} className="p-4 border-b border-slate-300 bg-customBlue">
-                                            <p className="block text-sm font-normal leading-none text-white">
-                                                {head}
-                                            </p>
-                                        </th>
+                        <div className="overflow-x-auto">
+                            <div className="inline-block min-w-full align-middle">
+                                <div className="overflow-hidden border-gray-200 shadow sm:rounded-lg">
 
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {topHolderData?.length ? topHolderData?.slice((currentPage - 1) * 10, (currentPage - 1) * 10 + 10).map((token, index) => {
-                                    return (
-                                        <tr key={index} className="">
-                                            <td className="p-4 border-b border-slate-200">
-                                                <p className="block text-sm">
-                                                    {(currentPage - 1) * 10 + index + 1}
-                                                </p>
-                                            </td>
-                                            <td className="p-4 border-b border-slate-200">
-                                                <p className="block text-sm">
-                                                    <Link href={`/account/${token.owner_address}`}>{token.owner_address}</Link>
-                                                </p>
-                                            </td>
-                                            <td className="p-4 border-b border-slate-200">
-                                                <p className="block text-sm">
-                                                    {Number(token.amount / (currentToken.value === "0x1::aptos_coin::AptosCoin" ? 100000000 : 1000000)).toFixed(2)}{chain === "apt" && ` ${token.metadata.symbol}`}
-                                                </p>
-                                            </td>
-                                            <td className="p-4 border-b border-slate-200">
-                                                {(Number(token.amount / (currentToken.value === "0x1::aptos_coin::AptosCoin" ? 100000000 : 1000000)) / currentToken.supply * 100).toFixed(4)}%
-                                            </td>
-                                        </tr>
-                                    )
-                                }) : (
-                                    <tr>
-                                        <td colSpan={top_holder_table_head.length} className="text-center py-4 border-b border-slate-200">
-                                            No Data
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                        <Pagination align="center" current={currentPage} onChange={changeHandler} total={20} pageSize={10} />
+                                    <table className="mb-2 w-full text-left table-auto min-w-max">
+                                        <thead>
+                                            <tr>
+                                                {top_holder_table_head.map((head, index) => (
+                                                    <th key={index} className="p-4 border-b border-slate-300 bg-customBlue">
+                                                        <p className="block text-sm font-normal leading-none text-white">
+                                                            {head}
+                                                        </p>
+                                                    </th>
+                                                ))}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {topHolderData?.length ? topHolderData?.slice((currentPage - 1) * 10, (currentPage - 1) * 10 + 10).map((token, index) => {
+                                                return (
+                                                    <tr key={index} className="transition-colors duration-200 hover:bg-sky-50">
+                                                        <td className="p-4 border-b border-slate-200">
+                                                            <p className="block text-sm">
+                                                                {(currentPage - 1) * 10 + index + 1}
+                                                            </p>
+                                                        </td>
+                                                        <td className="p-4 border-b border-slate-200">
+                                                            <p className="block text-sm">
+                                                                <Link href={`/account/${chain === "apt" ? token.owner_address : token.address}`}>{chain === "apt" ? token.owner_address : token.address}</Link>
+                                                            </p>
+                                                        </td>
+                                                        <td className="p-4 border-b border-slate-200">
+                                                            <p className="block text-sm">
+                                                                {chain === "apt" ? (Number(token.amount / (currentToken.value === "0x1::aptos_coin::AptosCoin" ? 100000000 : 1000000)).toFixed(2)) : token.amount}{chain === "apt" && ` ${token.metadata.symbol}`}
+                                                            </p>
+                                                        </td>
+                                                        <td className="p-4 border-b border-slate-200">
+                                                            {chain === "apt" ? ((Number(token.amount / (currentToken.value === "0x1::aptos_coin::AptosCoin" ? 100000000 : 1000000)) / currentToken.supply * 100).toFixed(4)) : token.percentage}%
+                                                        </td>
+                                                    </tr>
+                                                )
+                                            }) : (
+                                                <tr>
+                                                    <td colSpan={top_holder_table_head.length} className="text-center py-4 border-b border-slate-200">
+                                                        No Data
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        <Pagination align="center" current={currentPage} onChange={changeHandler} total={topHolderData?.length} pageSize={10} />
                     </div>
                 </div>
             </section>

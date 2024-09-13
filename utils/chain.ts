@@ -6,7 +6,7 @@ import axios, { AxiosInstance } from 'axios';
 export interface Blockchain {
     fetchAssetBalance(address: string): Promise<any>;
     fetchNFTsBalance(address: string): Promise<any>;
-    fetchTopHolder(asset_type: string, numberAccount: number): Promise<any>;
+    fetchTopHolder(asset_type: string, numberAccount: number, chain: string): Promise<any>;
     fetchTransactionByAccount(account: string, numberTransaction: number): Promise<any>;
 }
 
@@ -137,7 +137,7 @@ query MyQuery {
         }
     }
 
-    async fetchTopHolder(asset_type: string, numberAccount: number): Promise<any> {
+    async fetchTopHolder(asset_type: string, numberAccount: number, chain: string): Promise<any> {
         const operationsDoc = `
 query MyQuery {
   current_fungible_asset_balances(
@@ -280,8 +280,8 @@ class OtherBlockchain implements Blockchain {
         return result.nftHoldings;
     }
 
-    async fetchTopHolder(asset_type: string, numberAccount: number): Promise<HolderDataType[]> {
-        const result = await this.fetchData('/topHolders', { asset: asset_type, limit: numberAccount });
+    async fetchTopHolder(asset_type: string, numberAccount: number, chain: string): Promise<HolderDataType[]> {
+        const result = await this.fetchData('/top_holders', { chain: chain });
         return result.topHolders;
     }
 
