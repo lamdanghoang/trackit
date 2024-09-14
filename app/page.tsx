@@ -1,10 +1,11 @@
 "use client";
-import React, { useContext, useEffect, useState } from "react";
+import React, { Suspense, useContext, useEffect, useState } from "react";
 import { WalletName, useWallet } from '@aptos-labs/wallet-adapter-react';
 import { fetchAssetBalance, fetchNFTsBalance, BalanceDataType, NftDataType } from "@/utils/getData";
 import { Pagination, PaginationProps, Tabs } from 'antd';
 import GlobalContext from "@/context/store";
 import { getBlockchain } from "@/utils/chain";
+import { usePathname, useSearchParams } from 'next/navigation'
 
 interface TableAssetDataType {
   name: string;
@@ -88,29 +89,46 @@ const getNftTableData = (data: NftDataType[]) => {
   });
 };
 
-export default function HomePage() {
+function HomePage() {
   const { connect, disconnect, account, connected } = useWallet();
   const [aptBalance, setAptBalance] = useState<number | undefined>();
-  const [currentAddress, setCurrentAddress] = useState();
+  const [currentAddress, setCurrentAddress] = useState<string>();
   const [assetData, setAssetData] = useState<TableAssetDataType[] | []>();
   const [nftData, setNftData] = useState<TableNftDataType[] | []>();
   const [selectedTab, setSelectedTab] = useState<string>('0');
   const [currentPage, setCurrentPage] = useState(1);
   const [curentNftPage, setCurentNftPage] = useState(1);
   const { chain } = useContext(GlobalContext);
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const url = `${pathname}?${searchParams}`;
+    console.log(url);
+    const search = searchParams.get('wallet');
+    if (search) {
+      setCurrentAddress(search);
+    } else {
+      setCurrentAddress(account?.address);
+    }
+    console.log(search);
+    // You can now use the current URL
+    // ...
+  }, [pathname, searchParams, account?.address])
+
 
   useEffect(() => {
     const blockchain = getBlockchain(chain);
 
     const fetchData = async () => {
-      if (account?.address) {
+      if (currentAddress) {
         if (chain === 'apt') {
-          const assetData = await blockchain.fetchAssetBalance(account?.address);
+          const assetData = await blockchain.fetchAssetBalance(currentAddress);
           const processedAssetData = getTableData(assetData);
 
           const assetBalance = processedAssetData.filter(token => token.symbol === 'APT');
 
-          const nftData = await blockchain.fetchNFTsBalance(account?.address);
+          const nftData = await blockchain.fetchNFTsBalance(currentAddress);
           const processedNftData = getNftTableData(nftData);
 
           setAptBalance(assetBalance[0].quantity);
@@ -119,14 +137,14 @@ export default function HomePage() {
         }
 
         if (chain === 'sui' || chain === 'icp') {
-          const assetData: TableAssetDataType[] = await blockchain.fetchAssetBalance(account?.address);
+          const assetData: TableAssetDataType[] = await blockchain.fetchAssetBalance(currentAddress);
           let assetBalance: TableAssetDataType[];
           if (chain === 'sui') {
             assetBalance = assetData.filter(token => token.symbol === 'SUI');
           } else {
             assetBalance = assetData.filter(token => token.symbol === 'ICP');
           }
-          const nftData = await blockchain.fetchNFTsBalance(account?.address);
+          const nftData = await blockchain.fetchNFTsBalance(currentAddress);
 
           assetBalance.length > 0 ? setAptBalance(assetBalance[0].quantity) : setAptBalance(0);
           setAssetData(assetData);
@@ -138,7 +156,7 @@ export default function HomePage() {
     fetchData();
     setCurrentPage(1);
     setCurentNftPage(1);
-  }, [account?.address, chain]);
+  }, [currentAddress, chain]);
 
   const changeHandler: PaginationProps['onChange'] = (page) => {
     setCurrentPage(page);
@@ -158,7 +176,7 @@ export default function HomePage() {
         <div>
           <div className="text-2xl leading-normal font-semibold">Your Account</div>
           <div className="text-ellipsis overflow-hidden">
-            {chain === "apt" && account?.address}
+            {currentAddress}
 
           </div>
         </div>
@@ -313,5 +331,13 @@ export default function HomePage() {
         }
       </section>
     </main >
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <HomePage />
+    </Suspense>
   );
 }
