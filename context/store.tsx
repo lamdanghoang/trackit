@@ -17,7 +17,11 @@ const GlobalContext = createContext<ContextProps>(
     }
 );
 
-export const GlobalContextProvider = ({ children }) => {
+export const GlobalContextProvider = ({
+    children,
+}: Readonly<{
+    children: React.ReactNode;
+}>) => {
     const [chain, setChain] = useState('apt');
     const chainInstance = getBlockchain(chain);
 
