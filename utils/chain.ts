@@ -7,7 +7,10 @@ export interface Blockchain {
     fetchAssetBalance(address: string): Promise<any>;
     fetchNFTsBalance(address: string): Promise<any>;
     fetchTopHolder(asset_type: string, numberAccount: number, chain: string): Promise<any>;
-    fetchTransactionByAccount(account: string, numberTransaction: number): Promise<any>;
+    fetchTransactionByAccount(address: string, numberTransaction: number): Promise<any>;
+    fetchTransaction(address: string): Promise<any>;
+    fetchCoinsCreatedByAccount(address: string): Promise<any>;
+    fetchAccountResources(address: string): Promise<any>;
 }
 
 class AptosBlockChain implements Blockchain {
@@ -20,11 +23,79 @@ class AptosBlockChain implements Blockchain {
         }
     }
 
+    async fetchAccountResources(account: string): Promise<any> {
+        const link = `${this.url.urlGet}/accounts/${account}/transactions`;
+        const options = {
+            method: 'GET',
+            headers: {
+                accept: 'application/json',
+                'X-API-KEY': API_KEY,
+            }
+        };
+
+        try {
+            const response = await fetch(link, options);
+            if (response.ok) {
+                const result = await response.json();
+                return result;
+            } else {
+                return [];
+            }
+        } catch (error) {
+            throw new Error('Cannot fetch resources data. Try again later.');
+        }
+    }
+
+    async fetchCoinsCreatedByAccount(address: string): Promise<any> {
+        const operationsDoc = `
+query MyQuery($address: String) {
+  coin_infos(where: {creator_address: {_eq: $address}}) {
+    coin_type
+    coin_type_hash
+    creator_address
+    decimals
+    name
+    supply_aggregator_table_handle
+    supply_aggregator_table_key
+    symbol
+    transaction_created_timestamp
+    transaction_version_created
+  }
+}
+`;
+
+        const options = {
+            method: 'POST',
+            headers: {
+                accept: 'application/json',
+                'content-type': 'application/json',
+            },
+            body: JSON.stringify({
+                query: operationsDoc,
+                variables: { address },
+                operationName: "MyQuery",
+            }),
+        };
+
+        try {
+            const response = await fetch(this.url.indexer, options);
+            if (response.ok) {
+                const result = await response.json();
+                const coinInfos: BalanceDataType[] = result.data.coin_infos;
+                return coinInfos;
+            } else {
+                return [];
+            }
+        } catch (error) {
+            throw new Error('Cannot fetch coin info data. Try again later.');
+        }
+    }
+
     async fetchAssetBalance(address: string): Promise<any> {
         const operationsDoc = `
-query MyQuery {
+query MyQuery($address: String) {
   current_fungible_asset_balances(
-    where: {owner_address: {_eq: "${address}"}}
+    where: {owner_address: {_eq: $address}}
   ) {
     owner_address
     amount
@@ -54,7 +125,7 @@ query MyQuery {
             },
             body: JSON.stringify({
                 query: operationsDoc,
-                variables: {},
+                variables: { address },
                 operationName: "MyQuery",
             }),
         };
@@ -75,13 +146,13 @@ query MyQuery {
 
     async fetchNFTsBalance(address: string): Promise<any> {
         const operationsDoc = `
-query MyQuery {
+query MyQuery($address: String) {
   current_token_ownerships_v2(
     limit: 5
     offset: 0
     where: {
       owner_address: {
-        _eq: "${address}"
+        _eq: $address
       }
     }
   ) {
@@ -117,7 +188,7 @@ query MyQuery {
             },
             body: JSON.stringify({
                 query: operationsDoc,
-                variables: {},
+                variables: { address },
                 operationName: "MyQuery",
             }),
         };
@@ -139,10 +210,10 @@ query MyQuery {
 
     async fetchTopHolder(asset_type: string, numberAccount: number, chain: string): Promise<any> {
         const operationsDoc = `
-query MyQuery {
+query MyQuery($asset_type: String, $numberAccount: Int) {
   current_fungible_asset_balances(
-    limit: ${numberAccount}
-    where: {metadata: {asset_type: {_eq: "${asset_type}"}}, amount: {_gt: "0"}}
+    limit: $numberAccount
+    where: {metadata: {asset_type: {_eq: $asset_type}}, amount: {_gt: "0"}}
     order_by: {amount: desc}
   ) {
     amount
@@ -182,7 +253,7 @@ query MyQuery {
             },
             body: JSON.stringify({
                 query: operationsDoc,
-                variables: {},
+                variables: { asset_type, numberAccount },
                 operationName: "MyQuery",
             }),
         };
@@ -198,6 +269,62 @@ query MyQuery {
             }
         } catch (error) {
             throw new Error('Cannot fetch top holder data. Try again later.');
+        }
+    }
+
+    async fetchTransaction(address: string): Promise<any> {
+        const operationsDoc = `
+query MyQuery($address: String) {
+    account_transactions(
+        where: { account_address: { _eq: $address } }
+      order_by: { transaction_version: desc }
+    ) {
+        transaction_version
+        __typename
+      user_transaction {
+            entry_function_id_str
+            sender
+            timestamp
+            __typename
+        }
+      fungible_asset_activities {
+            amount
+            asset_type
+            entry_function_id_str
+            event_index
+            is_gas_fee
+            owner_address
+            type
+            __typename
+        }
+    }
+}
+`;
+
+        const options = {
+            method: 'POST',
+            headers: {
+                accept: 'application/json',
+                'content-type': 'application/json',
+            },
+            body: JSON.stringify({
+                query: operationsDoc,
+                variables: { address },
+                operationName: "MyQuery",
+            }),
+        };
+
+        try {
+            const response = await fetch(this.url.indexer, options);
+            if (response.ok) {
+                const result = await response.json();
+                const transactions = result.data.account_transactions;
+                return transactions;
+            } else {
+                return [];
+            }
+        } catch (error) {
+            throw new Error('Cannot fetch transaction data. Try again later.');
         }
     }
 
@@ -259,6 +386,12 @@ class OtherBlockchain implements Blockchain {
             }
         );
     }
+    fetchAccountResources(address: string): Promise<any> {
+        throw new Error("Method not implemented.");
+    }
+    fetchCoinsCreatedByAccount(account: string): Promise<any> {
+        throw new Error("Method not implemented.");
+    }
 
     private async fetchData(endpoint: string, params: Record<string, any> = {}): Promise<any> {
         try {
@@ -283,6 +416,10 @@ class OtherBlockchain implements Blockchain {
     async fetchTopHolder(asset_type: string, numberAccount: number, chain: string): Promise<HolderDataType[]> {
         const result = await this.fetchData('/top_holders', { chain: chain });
         return result.topHolders;
+    }
+
+    async fetchTransaction(account: string): Promise<any> {
+        throw new Error("Method not implemented.");
     }
 
     async fetchTransactionByAccount(account: string, numberTransaction: number): Promise<TableTransactionDataType[]> {
@@ -358,7 +495,7 @@ class OtherBlockchain implements Blockchain {
 
 export function getBlockchain(chainName: string): Blockchain {
     if (chainName === 'apt') {
-        return new AptosBlockChain('mainnet'); // Thay thế bằng URL của node Ethereum
+        return new AptosBlockChain('mainnet');
     } else if (chainName === 'sui' || chainName === 'icp') {
         return new OtherBlockchain('http://dgt-dev.vercel.app/v1');
     } else {
